@@ -113,9 +113,9 @@ class TestKeyManager:
         entry = registry["det_jones"]
         priv_path = key_manager.keys_dir / entry["private_key_file"]
         assert priv_path.exists()
-      mode = priv_path.stat().st_mode & 0o777
-if os.name != "nt":
-    assert mode == 0o600
+        mode = priv_path.stat().st_mode & 0o777
+        if os.name != "nt":
+            assert mode == 0o600
     def test_registry_persists_across_instances(self, tmp_path):
         km1 = KeyManager(keys_dir=str(tmp_path / "keys"))
         key_id_1, _ = km1.get_or_create_signing_key("Det. Jones")
