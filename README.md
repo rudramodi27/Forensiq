@@ -71,32 +71,56 @@ adb version
 ## Project Structure
 
 ```
-forensiq_tool/
-├── main.py                         # Entry point — HiDPI aware
+Forensiq/
+├── forensiq/
+│   ├── core/
+│   │   ├── adb_manager.py
+│   │   ├── analyzer.py
+│   │   ├── audit_service.py
+│   │   ├── case_manager.py
+│   │   ├── hasher.py
+│   │   ├── integrity_engine.py
+│   │   ├── key_manager.py
+│   │   ├── manifest_service.py
+│   │   ├── reporter.py
+│   │   ├── signature_service.py
+│   │   └── time_utils.py
+│   │
+│   └── ui/
+│       ├── main_window.py
+│       └── panels/
+│           ├── acquisition_panel.py
+│           ├── analysis_panel.py
+│           ├── audit_panel.py
+│           ├── cases_panel.py
+│           ├── custody_panel.py
+│           ├── dashboard.py
+│           ├── device_panel.py
+│           ├── integrity_panel.py
+│           ├── report_panel.py
+│           └── signature_panel.py
+│
+├── scripts/
+│   ├── build_release.bat
+│   └── build_release.sh
+│
+├── tests/
+│   ├── test_analyzer.py
+│   ├── test_audit.py
+│   ├── test_case_manager.py
+│   ├── test_hasher.py
+│   ├── test_integrity.py
+│   ├── test_manifest.py
+│   ├── test_regression.py
+│   ├── test_reporter.py
+│   ├── test_signature.py
+│   └── test_time_utils.py
+│
+├── main.py
+├── pyproject.toml
 ├── requirements.txt
-└── forensiq/
-    ├── core/
-    │   ├── adb_manager.py          # ADB operations + background workers
-    │   ├── case_manager.py         # SQLite CRUD — all 8 tables
-    │   ├── hasher.py               # SHA-256 streaming hash utilities
-    │   ├── analyzer.py             # Timeline, metadata, apps, duplicates,
-    │   │                           #   correlation, global search, analysis reports
-    │   ├── integrity_engine.py     # Hash re-verification + VerificationWorker thread
-    │   ├── audit_service.py        # Immutable audit trail + custody event helpers
-    │   └── reporter.py             # PDF (ReportLab) + HTML — 9 report types
-    └── ui/
-        ├── styles.py               # Dark QSS theme (HiDPI-aware)
-        ├── main_window.py          # Main window + sidebar navigation
-        └── panels/
-            ├── dashboard.py        # Overview, quick stats, recent cases
-            ├── device_panel.py     # Phase 1 — Device Identification
-            ├── acquisition_panel.py # Phase 2 — Evidence Acquisition
-            ├── cases_panel.py      # Phase 3 — Evidence Management
-            ├── analysis_panel.py   # Phase 4 — Advanced Analysis Engine
-            ├── report_panel.py     # Phase 5 — Report Generation (9 types)
-            ├── integrity_panel.py  # SHA-256 integrity verification
-            ├── audit_panel.py      # Immutable audit trail viewer
-            └── custody_panel.py    # Chain of custody management
+├── pytest.ini
+└── README.md
 ```
 
 ---
