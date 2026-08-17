@@ -17,3 +17,7 @@ env/
 
 .DS_Store
 Thumbs.db
+# Generated forensic reports
+verification_report.html
+reports/
+generated_reports/
