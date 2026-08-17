@@ -177,29 +177,30 @@ This upgrade will extend ForensIQ toward a more complete forensic workflow:
 
 ```text
 Acquisition → Recovery → Validation → Analysis → Reporting
-🚀 Status: Current version available • Android Deleted Data Recovery — Coming Soon
+```markdown
+This upgrade will extend ForensIQ toward a more complete forensic workflow:
 
-🛣️ Roadmap
-✅ Completed
+**Acquisition → Recovery → Validation → Analysis → Reporting**
 
-📱 Evidence & Case Acquisition
+> 🚀 **Status:** Current version available • **Android Deleted Data Recovery — Coming Soon**
 
-🔐 Hash Verification
+---
 
-🔍 Forensic Analysis
+## 🛣️ Roadmap
 
-🧾 Audit & Chain of Custody
+### ✅ Completed
 
-📊 Report Generation
+- [x] 📱 Evidence & Case Acquisition
+- [x] 🔐 Hash Verification
+- [x] 🔍 Forensic Analysis
+- [x] 🧾 Audit & Chain of Custody
+- [x] 📊 Report Generation
 
-🚧 In Development
+### 🚧 In Development
 
-🗑️ Android Deleted Data Recovery
+- [ ] 🗑️ Android Deleted Data Recovery
+- [ ] 💾 Filesystem & Unallocated-Space Analysis
+- [ ] 🧩 File Carving Engine
+- [ ] 🔎 Advanced Recovery Validation
 
-💾 Filesystem & Unallocated-Space Analysis
-
-🧩 File Carving Engine
-
-🔎 Advanced Recovery Validation
-
-Note: The recovery features listed above are part of the upcoming major upgrade and are currently under development.
+> **Note:** The recovery features listed above are part of the upcoming major upgrade and are currently under development.
