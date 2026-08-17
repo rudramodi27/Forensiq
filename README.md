@@ -175,11 +175,6 @@ The upcoming version will introduce **Android Deleted Data Recovery**, focusing 
 
 This upgrade will extend ForensIQ toward a more complete forensic workflow:
 
-```text
-Acquisition → Recovery → Validation → Analysis → Reporting
-```markdown
-This upgrade will extend ForensIQ toward a more complete forensic workflow:
-
 **Acquisition → Recovery → Validation → Analysis → Reporting**
 
 > 🚀 **Status:** Current version available • **Android Deleted Data Recovery — Coming Soon**
