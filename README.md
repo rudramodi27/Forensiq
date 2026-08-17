@@ -142,3 +142,64 @@ Full details: [`USER_GUIDE.md`](USER_GUIDE.md) (how to use them) and
 - User file pull (`/sdcard/DCIM`, `/sdcard/Documents`, etc.) requires device unlocked
 - `python-magic` is used for accurate MIME type detection if installed; falls back to `mimetypes`
 - All evidence files are SHA-256 hashed at acquisition time and stored in the DB
+
+## 🔄 Current Version & Upcoming Upgrade
+
+### 📌 Current ForensIQ
+
+ForensIQ currently provides a structured **digital forensics workflow** for:
+
+- 📱 Evidence and Case Acquisition
+- 🔐 Evidence Integrity & SHA-256 Hash Verification
+- 🔍 Forensic Artifact Analysis
+- 🧾 Audit Logging & Chain of Custody
+- 📊 HTML/PDF Forensic Report Generation
+
+In short, the current version focuses on **acquiring, analyzing, validating, and documenting digital evidence**.
+
+---
+
+### 🚧 Upcoming Major Upgrade — Android Deleted Data Recovery
+
+The next major upgrade of ForensIQ is currently under development.
+
+The upcoming version will introduce **Android Deleted Data Recovery**, focusing on identifying and recovering **recoverable remnants of deleted data** through:
+
+- Filesystem Analysis
+- Unallocated-Space Analysis
+- File Carving
+- Recovery Validation
+- Cryptographic Hash Verification
+- Forensic Analysis of Recovered Artifacts
+- Evidence Documentation & Reporting
+
+This upgrade will extend ForensIQ toward a more complete forensic workflow:
+
+```text
+Acquisition → Recovery → Validation → Analysis → Reporting
+🚀 Status: Current version available • Android Deleted Data Recovery — Coming Soon
+
+🛣️ Roadmap
+✅ Completed
+
+📱 Evidence & Case Acquisition
+
+🔐 Hash Verification
+
+🔍 Forensic Analysis
+
+🧾 Audit & Chain of Custody
+
+📊 Report Generation
+
+🚧 In Development
+
+🗑️ Android Deleted Data Recovery
+
+💾 Filesystem & Unallocated-Space Analysis
+
+🧩 File Carving Engine
+
+🔎 Advanced Recovery Validation
+
+Note: The recovery features listed above are part of the upcoming major upgrade and are currently under development.
