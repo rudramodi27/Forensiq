@@ -1,0 +1,17 @@
+# ForensIQ v1.0 — Python dependencies
+# Python 3.11+ required
+
+# GUI framework
+PyQt6>=6.6.0
+
+# PDF report generation
+reportlab>=4.0.0
+
+# Image support (used by ReportLab)
+Pillow>=10.0.0
+
+# Cryptographic signing (Phase 5 — Digital Signature)
+cryptography>=42.0.0
+
+# MIME type detection (optional — falls back to stdlib mimetypes if absent)
+# python-magic>=0.4.27

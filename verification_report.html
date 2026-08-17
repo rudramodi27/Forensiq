@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ForensIQ — Integrity Report CASE-20260817-1617</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#0d1117;color:#e6edf3;padding:2rem;font-size:13px}
+h1{color:#1d9e75;font-size:24px;margin-bottom:6px}
+h2{color:#1d9e75;font-size:14px;margin:1.8rem 0 0.6rem;padding-left:10px;border-left:3px solid #1d9e75;text-transform:uppercase;letter-spacing:.05em}
+.meta{color:#8b949e;font-size:12px;margin-bottom:1.5rem}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:1.5rem}
+.card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:1rem;text-align:center}
+.card .num{font-size:26px;font-weight:600}.card .lbl{font-size:11px;color:#8b949e;margin-top:3px}
+.section{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:1rem;overflow-x:auto;margin-bottom:1.5rem}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#21262d;color:#8b949e;padding:7px 8px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #30363d}
+td{padding:6px 8px;border-bottom:1px solid #21262d;vertical-align:middle}
+tr:hover td{background:#1c2128}
+.mono{font-family:'Courier New',monospace}.small{font-size:10px}
+.badge{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.footer{margin-top:2rem;font-size:11px;color:#30363d;border-top:1px solid #21262d;padding-top:1rem;text-align:center}
+</style>
+</head>
+<body>
+<h1>🔐 ForensIQ — Evidence Integrity Report</h1>
+<div class="meta">
+  <strong>Case:</strong> CASE-20260817-1617 &nbsp;·&nbsp;
+  <strong>Generated:</strong> 2026-08-17 10:53:27 UTC &nbsp;·&nbsp;
+  <strong>Total Evidence Items:</strong> 7
+</div>
+<div class="grid">
+  <div class="card"><div class="num" style="color:#e6edf3">7</div><div class="lbl">Total</div></div>
+  <div class="card"><div class="num" style="color:#3fb950">7</div><div class="lbl">MATCH</div></div>
+  <div class="card"><div class="num" style="color:#f85149">0</div><div class="lbl">MISMATCH</div></div>
+  <div class="card"><div class="num" style="color:#e3b341">0</div><div class="lbl">MISSING</div></div>
+  <div class="card"><div class="num" style="color:#f85149">0</div><div class="lbl">CORRUPTED</div></div>
+  <div class="card"><div class="num" style="color:#8b949e">0</div><div class="lbl">ERROR</div></div>
+</div>
+<h2>Verification Results</h2>
+<div class="section">
+<table>
+<thead><tr>
+  <th>Ev.ID</th><th>Filename</th><th>Category</th><th>Result</th>
+  <th>Stored SHA-256</th><th>Current SHA-256</th><th>Verified At</th><th>Notes</th>
+</tr></thead>
+<tbody><tr>
+              <td class="mono">5</td>
+              <td>installed_apps.json</td>
+              <td>apps</td>
+              <td><span class="badge" style="background:#3FB95020;
+                  color:#3FB950;border:1px solid #3FB95040">
+                  MATCH</span></td>
+              <td class="mono small">55ab3a315f9c879f2aac22008335470a…</td>
+              <td class="mono small">55ab3a315f9c879f2aac22008335470a…</td>
+              <td class="mono">2026-08-17 10:53:08 UTC</td>
+              <td>Recalculated hash matches the original acquisition hash.</td>
+            </tr>
+<tr>
+              <td class="mono">6</td>
+              <td>battery_info.json</td>
+              <td>battery</td>
+              <td><span class="badge" style="background:#3FB95020;
+                  color:#3FB950;border:1px solid #3FB95040">
+                  MATCH</span></td>
+              <td class="mono small">26ff6545a3e17585dd0868c223b5833c…</td>
+              <td class="mono small">26ff6545a3e17585dd0868c223b5833c…</td>
+              <td class="mono">2026-08-17 10:53:08 UTC</td>
+              <td>Recalculated hash matches the original acquisition hash.</td>
+            </tr>
+<tr>
+              <td class="mono">7</td>
+              <td>network_info.txt</td>
+              <td>network</td>
+              <td><span class="badge" style="background:#3FB95020;
+                  color:#3FB950;border:1px solid #3FB95040">
+                  MATCH</span></td>
+              <td class="mono small">36ca6d71d594ac954fc2861acb59c1ff…</td>
+              <td class="mono small">36ca6d71d594ac954fc2861acb59c1ff…</td>
+              <td class="mono">2026-08-17 10:53:08 UTC</td>
+              <td>Recalculated hash matches the original acquisition hash.</td>
+            </tr>
+<tr>
+              <td class="mono">1</td>
+              <td>installed_apps.json</td>
+              <td>apps</td>
+              <td><span class="badge" style="background:#3FB95020;
+                  color:#3FB950;border:1px solid #3FB95040">
+                  MATCH</span></td>
+              <td class="mono small">edbaa1001b64a6b572bb9b2f97a155fc…</td>
+              <td class="mono small">edbaa1001b64a6b572bb9b2f97a155fc…</td>
+              <td class="mono">2026-08-17 10:53:08 UTC</td>
+              <td>Recalculated hash matches the original acquisition hash.</td>
+            </tr>
+<tr>
+              <td class="mono">2</td>
+              <td>battery_info.json</td>
+              <td>battery</td>
+              <td><span class="badge" style="background:#3FB95020;
+                  color:#3FB950;border:1px solid #3FB95040">
+                  MATCH</span></td>
+              <td class="mono small">159ee89d2c06b42fe39243ffbefaa8a9…</td>
+              <td class="mono small">159ee89d2c06b42fe39243ffbefaa8a9…</td>
+              <td class="mono">2026-08-17 10:53:08 UTC</td>
+              <td>Recalculated hash matches the original acquisition hash.</td>
+            </tr>
+<tr>
+              <td class="mono">3</td>
+              <td>network_info_raw.txt</td>
+              <td>network</td>
+              <td><span class="badge" style="background:#3FB95020;
+                  color:#3FB950;border:1px solid #3FB95040">
+                  MATCH</span></td>
+              <td class="mono small">e7e8a367d4d8f3591d820c637e6e002e…</td>
+              <td class="mono small">e7e8a367d4d8f3591d820c637e6e002e…</td>
+              <td class="mono">2026-08-17 10:53:08 UTC</td>
+              <td>Recalculated hash matches the original acquisition hash.</td>
+            </tr>
+<tr>
+              <td class="mono">4</td>
+              <td>network_info.json</td>
+              <td>network</td>
+              <td><span class="badge" style="background:#3FB95020;
+                  color:#3FB950;border:1px solid #3FB95040">
+                  MATCH</span></td>
+              <td class="mono small">6e63ee1aacab63a3a354a489f1a75cf9…</td>
+              <td class="mono small">6e63ee1aacab63a3a354a489f1a75cf9…</td>
+              <td class="mono">2026-08-17 10:53:08 UTC</td>
+              <td>Recalculated hash matches the original acquisition hash.</td>
+            </tr></tbody>
+</table>
+</div>
+<div class="footer">
+  ForensIQ Integrity Engine &nbsp;·&nbsp; 2026-08-17 10:53:27 UTC &nbsp;·&nbsp;
+  All SHA-256 hashes computed at verification time.
+</div>
+</body></html>

@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "forensiq"
+version = "1.1.0"
+description = "Digital forensic suite for Android device investigation (PyQt6 desktop app)"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Proprietary" }
+authors = [{ name = "ForensIQ Labs" }]
+
+dependencies = [
+    "PyQt6>=6.6.0",
+    "reportlab>=4.0.0",
+    "Pillow>=10.0.0",
+    "cryptography>=42.0.0",
+]
+
+[project.optional-dependencies]
+# Improves MIME type detection during analysis; falls back to stdlib
+# mimetypes if not installed. Not required.
+magic = ["python-magic>=0.4.27; platform_system != 'Windows'",
+         "python-magic-bin>=0.4.14; platform_system == 'Windows'"]
+# Test/build tooling — not required to run the application.
+dev = ["pytest>=8.0", "pyinstaller>=6.0"]
+
+[project.urls]
+Documentation = "./README.md"
+
+[project.scripts]
+# Enables `pip install -e .` + `forensiq` on PATH as an alternative to
+# `python main.py`. The existing `python main.py` entry point is unchanged.
+forensiq = "main:main"
+
+[tool.setuptools]
+py-modules = ["main"]
+
+[tool.setuptools.packages.find]
+include = ["forensiq*"]
+
+# Test configuration lives in pytest.ini (already present) — not duplicated
+# here to avoid two sources of truth for test discovery settings.
