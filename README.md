@@ -1,5 +1,5 @@
-# ForensIQ — Digital Forensic Suite v1.0
-
+# ForensIQ — Android Digital Forensics Suite
+> **Current Release: v1.4.0**
 A Python/PyQt6 desktop application for professional Android device forensic investigation.
 
 ## Documentation
