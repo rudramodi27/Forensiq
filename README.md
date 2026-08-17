@@ -199,3 +199,20 @@ This upgrade will extend ForensIQ toward a more complete forensic workflow:
 - [ ] 🔎 Advanced Recovery Validation
 
 > **Note:** The recovery features listed above are part of the upcoming major upgrade and are currently under development.
+---
+
+## ⚠️ Disclaimer
+
+ForensIQ is developed **for educational and authorized digital forensics research purposes only**.
+
+This project is intended to be used only on devices, systems, and data for which you have explicit authorization.
+
+The author is not responsible for misuse, unauthorized access, data loss, or any damage resulting from the use of this software.
+
+---
+
+## 📄 License
+
+This project is currently **not licensed for redistribution or commercial use**.
+
+All rights are reserved by the author unless otherwise stated.
