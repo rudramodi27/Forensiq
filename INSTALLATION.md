@@ -10,7 +10,7 @@
 ## 2. Install Python Dependencies
 
 ```bash
-# 1. Clone or unpack the project, then from forensiq_tool/:
+# 1. Clone or unpack the project, then open a terminal in the project root:
 python -m venv venv
 
 # 2. Activate the virtual environment
