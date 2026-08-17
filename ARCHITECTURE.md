@@ -2,206 +2,787 @@
 
 ## 1. Overview
 
-ForensIQ is a single-user desktop application for acquiring, analyzing, and
-reporting on evidence pulled from Android devices via ADB. It is built as a
-three-layer PyQt6 application on top of a local SQLite database:
+ForensIQ is a single-user desktop application for acquiring, analyzing,
+managing, verifying, and reporting on digital evidence obtained from
+authorized Android devices through ADB.
 
+It is implemented as a three-layer PyQt6 desktop application backed by a
+local SQLite database:
+
+```text id="r8m0a2"
+┌─────────────────────────────────────────────────────────────┐
+│                         UI Layer                            │
+│                         PyQt6                               │
+│  Dashboard · Device · Acquisition · Cases · Analysis        │
+│  Reports · Signatures · Integrity · Audit · Custody         │
+└────────────────────────────┬────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Core / Service Layer                     │
+│                                                             │
+│  ADB Manager · Case Manager · Analyzer · Integrity Engine   │
+│  Audit Service · Hasher · Reporter · Key Manager            │
+│  Signature Service · Manifest Service                       │
+└────────────────────────────┬────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│                     Persistence Layer                       │
+│                                                             │
+│               SQLite / Case Database                        │
+│                 ~/.forensiq/forensiq.db                     │
+└─────────────────────────────────────────────────────────────┘
 ```
-┌─────────────────────────────────────────────────────────┐
-│                      UI Layer (PyQt6)                    │
-│   forensiq/ui/main_window.py + forensiq/ui/panels/*.py   │
-└───────────────────────────┬───────────────────────────────┘
-                            │ calls
-┌───────────────────────────▼───────────────────────────────┐
-│                     Core / Service Layer                 │
-│  adb_manager · analyzer · integrity_engine · audit_service│
-│  reporter · hasher                                        │
-└───────────────────────────┬───────────────────────────────┘
-                            │ reads/writes
-┌───────────────────────────▼───────────────────────────────┐
-│                 Persistence — case_manager.py             │
-│              SQLite (~/.forensiq/forensiq.db)             │
-└─────────────────────────────────────────────────────────┘
+
+The UI does not directly manipulate database tables. Persistence and
+business operations are handled through `CaseManager` and the appropriate
+core services. This keeps the core logic testable independently of Qt.
+
+The architecture is intentionally local-first: investigation data,
+evidence metadata, analysis results, verification records, audit records,
+custody events, and signatures are maintained within the local
+investigation environment.
+
+---
+
+## 2. Architectural Layers
+
+### 2.1 UI Layer
+
+The UI layer is implemented using PyQt6.
+
+Responsibilities include:
+
+* Navigation
+* Case management
+* Device identification
+* Evidence acquisition
+* Evidence browsing
+* Analysis execution
+* Integrity verification
+* Digital-signature operations
+* Audit review
+* Chain-of-custody management
+* Report generation
+* Investigation status and result presentation
+
+Panels communicate with core services rather than implementing forensic
+business logic themselves.
+
+### 2.2 Core / Service Layer
+
+The core layer contains the application's forensic and business logic.
+
+Major services include:
+
+* `case_manager.py`
+* `adb_manager.py`
+* `hasher.py`
+* `integrity_engine.py`
+* `analyzer.py`
+* `audit_service.py`
+* `reporter.py`
+* `key_manager.py`
+* `signature_service.py`
+* `manifest_service.py`
+
+The core layer is designed to remain largely independent of Qt so that
+important functionality can be tested without starting the graphical
+interface.
+
+### 2.3 Persistence Layer
+
+ForensIQ uses SQLite for local case persistence.
+
+The primary database is:
+
+```text id="x6q3bn"
+~/.forensiq/forensiq.db
 ```
 
-The UI never touches the database directly — every panel goes through
-`CaseManager` (persistence) or one of the core services. This keeps business
-logic testable independent of Qt (see `tests/`, which import core modules
-without instantiating any widgets).
+`CaseManager` owns the database schema, migrations, and CRUD operations.
 
-## 2. Process & Threading Model
+The application uses an additive and idempotent migration strategy so that
+existing databases can be upgraded without destructive schema replacement.
 
-PyQt's event loop is single-threaded; long-running work (ADB pulls, hashing,
-verification, analysis) is offloaded to `QThread` subclasses so the UI stays
-responsive:
+---
 
-| Worker | Defined in | Used by |
-|---|---|---|
-| `DeviceDetectWorker` | `core/adb_manager.py` | Device panel — device scan |
-| `AcquisitionWorker` | `core/adb_manager.py` | Acquisition panel — file pull |
-| `VerificationWorker` | `core/integrity_engine.py` | Integrity panel — hash re-check |
-| `AnalysisWorker` | `core/analyzer.py` | Analysis panel — timeline/metadata/apps/duplicates/correlation |
-| `ReportWorker` | `ui/panels/report_panel.py` | Report panel — PDF/HTML generation |
+## 3. Process and Threading Model
 
-Each worker communicates back to its panel exclusively through Qt signals
-(`progress`, `finished`, `error`, and workload-specific signals such as
-`file_acquired`). No worker touches a Qt widget directly, and no widget is
-shared across threads — only primitive data crosses the signal boundary.
+PyQt's event loop is single-threaded. Operations that may take significant
+time are therefore executed asynchronously using Qt worker threads.
 
-`CaseManager` opens a fresh SQLite connection per call (`check_same_thread=False`,
-WAL mode) rather than holding one connection open across threads, which avoids
-cross-thread cursor issues when a worker thread and the UI thread both query
-the database around the same time.
+Current workers include:
 
-## 3. Core Modules
+| Worker               | Defined in                  | Purpose                       |
+| -------------------- | --------------------------- | ----------------------------- |
+| `DeviceDetectWorker` | `core/adb_manager.py`       | Asynchronous device discovery |
+| `AcquisitionWorker`  | `core/adb_manager.py`       | Evidence acquisition          |
+| `VerificationWorker` | `core/integrity_engine.py`  | SHA-256 verification          |
+| `AnalysisWorker`     | `core/analyzer.py`          | Forensic analysis             |
+| `ReportWorker`       | `ui/panels/report_panel.py` | Report generation             |
 
-### `core/case_manager.py` — Persistence
-Owns the schema (`SCHEMA`), the startup migration routine (`_run_migrations`),
-and all CRUD access across the tables described in `DATABASE_SCHEMA.md`.
-Every other core module depends on `CaseManager`; it has no dependency on any
-other core module.
+Workers communicate with their respective UI panels through Qt signals.
 
-**Phase 3 — Device Acquisition Accuracy:** device identity (`add_device`) is
-a stable get-or-update-or-create keyed on `(case_id, serial)` — a physical
-device is stored once per case no matter how many times it's connected.
-Each connection/acquisition run is instead recorded as a separate
-`acquisition_sessions` row (`start_acquisition_session` /
-`end_acquisition_session`), capturing a point-in-time `device_snapshot` and
-the requested targets. Evidence produced during a tracked run links to that
-session via `evidence.session_id`. Hierarchy: **Case → Device → Acquisition
-Sessions → Evidence.**
+Typical signals include:
 
-### `core/adb_manager.py` — Device Communication
-Thin wrapper around the `adb` binary via `subprocess`. Responsibilities:
-device discovery (`list_devices`), device profiling (`get_device_info`,
-`get_installed_apps`, `get_running_processes`, `get_battery_info`,
-`get_network_info`), and evidence acquisition (`pull_user_files`), which pulls
-`Photos`, `Videos`, and `Documents` categories from standard `/sdcard`
-locations into the case's evidence directory and SHA-256 hashes each new file
-as it lands. No root access is used or required.
+* `progress`
+* `finished`
+* `error`
+* workload-specific result signals
 
-### `core/hasher.py` — Hashing Primitives
-Streaming SHA-256 (`sha256_file`, `hash_directory`) in 64 KB chunks so large
-evidence files don't need to be loaded into memory, plus `sha256_string` /
-`sha256_bytes` / `verify_file` helpers used across acquisition, integrity, and
-analysis.
+Workers do not directly manipulate Qt widgets.
 
-### `core/integrity_engine.py` — Integrity Verification
-Re-hashes evidence on disk and compares it against the hash stored at
-acquisition time (`verify_single`, `verify_case`, `verify_all`), classifying
-each item as `PASS`, `FAIL`, `MISSING`, or `ERROR`. Every verification is
-persisted to `verification_results` and mirrored into the audit trail via
-`AuditService`. Includes JSON/HTML export (`export_json`, `export_html`).
+Only appropriate primitive or result data crosses the signal boundary.
 
-### `core/analyzer.py` — Analysis Engine
-Stateless functions operating on an evidence directory (+ optionally the DB
-for correlation):
-- `build_file_timeline` / `build_unified_timeline` — filesystem timestamps
-  merged with acquisition, verification, audit, and custody events into one
-  chronological view.
-- `extract_file_metadata` — MIME type (via `python-magic` if installed, else
-  stdlib `mimetypes`), size, SHA-256, timestamps.
-- `analyze_apps` / `classify_app` — classifies installed apps as
-  system / user / disabled / sideloaded and flags recent installs.
-- `detect_duplicates` — SHA-256 + size matching across the evidence
-  directory and DB.
-- `correlate_artifacts` — links files ↔ apps ↔ audit ↔ custody ↔
-  verification records for a case.
-- `keyword_search_files` / `keyword_search_global` — filename/content and
-  cross-table keyword search with date/investigator/type/status filters.
-- `generate_analysis_report` — bundles the above into a JSON + HTML report.
+### Database Thread Safety
 
-### `core/audit_service.py` — Audit & Custody
-`AuditService` wraps `CaseManager.add_audit_event` /
-`CaseManager.add_custody_event` with typed helper methods
-(`log_case_created`, `log_evidence_added`, `log_verification`, ...) so
-call sites can't misspell an action string. Audit rows are **append-only**:
-`case_manager.py` and `audit_service.py` intentionally expose no update or
-delete method for `audit_trail`. Custody events reference `case_id` /
-`evidence_id` with `ON DELETE SET NULL`, so a chain-of-custody record
-survives case or evidence deletion.
+`CaseManager` creates a fresh SQLite connection per operation and uses
+WAL mode with `check_same_thread=False`.
 
-### `core/reporter.py` — Reporting
-Nine report generators (eight HTML, via hand-built templates, plus one PDF
-via ReportLab's `Table`/`Paragraph` flowables). All user-supplied text (case
-notes, investigator names, filenames, custody notes, etc.) is HTML-escaped
-through a shared `_esc` helper before being interpolated into a report, which
-is the project's primary XSS/HTML-injection mitigation for generated reports.
+This avoids sharing a long-lived SQLite connection between the UI thread
+and worker threads.
 
-### `core/key_manager.py` / `core/signature_service.py` — Digital Signature *(Phase 5)*
-`KeyManager` generates and loads one Ed25519 keypair per signer identity
-(via the `cryptography` library — no custom cryptography), stored under
-`~/.forensiq/keys/` with owner-only file permissions and optional
-passphrase encryption. Private keys never enter `forensiq.db`, never leave
-`key_manager.py`, and are never logged.
+---
 
-`SignatureService` signs a generated Manifest or Report file
-(`sign_manifest` / `sign_report`) by hashing it with the same
-`hasher.sha256_file_verify` helper `IntegrityEngine` uses, writing a
-detached `<artifact>.sig.json` sidecar (the original artifact is opened
-read-only and never rewritten), and persisting the same metadata to the
-new `signatures` table via `CaseManager.add_signature`.
-`verify_artifact` re-hashes the artifact and returns exactly one of
-`VALID` / `INVALID` / `MODIFIED` / `MISSING` / `KEY_UNAVAILABLE` — see
-`DATABASE_SCHEMA.md §2.9` for the table layout and
-`signature_service.py`'s module docstring for how each state is derived.
-Both `log_artifact_signed` and `log_signature_verified` on
-`AuditService` mirror sign/verify outcomes into the existing audit trail,
-matching the append-only pattern already used for `verification_results`.
+## 4. Core Modules
 
-## 4. UI Layer
+### 4.1 `core/case_manager.py` — Case and Persistence Management
 
-`main_window.py` hosts a `QStackedWidget` driven by a sidebar built from the
-static `NAV_ITEMS` list (Dashboard, Device, Acquisition, Cases, Analysis,
-Reports, Signatures, Integrity, Audit Trail, Custody). Each entry in
-`NAV_ITEMS` maps to exactly one panel class in `ui/panels/`;
-`MainWindow._nav_to` swaps the visible widget and updates the header
-title/subtitle from the same list, so adding a new panel means adding one
-`NAV_ITEMS` tuple plus one `stack.addWidget(...)` call — no other
-navigation wiring is needed.
+`CaseManager` owns:
 
-Styling is centralized in `ui/styles.py`, a single dark QSS theme applied at
-the application level; panels do not set per-widget stylesheets outside of
-status/result color coding (e.g. PASS/FAIL badges, VALID/INVALID/MODIFIED
-signature status badges).
+* Database schema
+* Database migrations
+* Case CRUD
+* Device records
+* Evidence records
+* Acquisition sessions
+* Analysis results
+* Timeline events
+* Verification results
+* Audit records
+* Custody events
+* Signature records
 
-## 5. Data Flow — Typical Case Lifecycle
+The primary investigation hierarchy is:
 
-1. **Cases panel** → `CaseManager.create_case` → row in `cases`,
-   `AuditService.log_case_created`.
-2. **Device panel** → `ADBManager.get_device_info` (+ async detect) →
-   `CaseManager.add_device` → row in `devices`.
-3. **Acquisition panel** → `ADBManager.acquire_async` → files written to disk
-   under the case's evidence directory, each hashed →
-   `CaseManager.add_evidence` per file → rows in `evidence`,
-   `AuditService.log_evidence_added`.
-4. **Analysis panel** → `analyzer.*` functions read the evidence directory
-   (+ DB) → `CaseManager.add_analysis_result` / `add_timeline_event`.
-5. **Integrity panel** → `IntegrityEngine.verify_case` re-hashes each
-   evidence file → `CaseManager.add_verification_result`,
-   `AuditService.log_verification`.
-6. **Custody panel** → `AuditService.add_custody_event` → row in
-   `custody_events` (independent of audit_trail, but both are shown together
-   in the unified timeline).
-7. **Report panel** → `reporter.generate_*` reads across all of the above
-   tables and renders a self-contained HTML or PDF file →
-   `AuditService.log_report_generated`.
-8. **Signature panel** → `manifest_service.build_manifest` /
-   `export_manifest_json` (Sign Manifest) or a previously generated report
-   file (Sign Report) → `SignatureService.sign_artifact` hashes the file,
-   signs it via `KeyManager`, writes a detached `.sig.json` sidecar →
-   `CaseManager.add_signature`, `AuditService.log_artifact_signed`. Verify
-   Signature re-hashes the chosen file → `SignatureService.verify_artifact`
-   → `AuditService.log_signature_verified`.
+```text id="l7x0pd"
+Case
+  └── Device
+       └── Acquisition Session
+            └── Evidence
+```
 
-## 6. Design Principles Preserved
+A device is identified using the case and device serial information so that
+the same physical device is not unnecessarily duplicated within a case.
 
-- **Immutability of the audit trail** — no code path updates or deletes
-  `audit_trail` rows.
-- **No root / exploit usage** — acquisition is limited to user-accessible
-  `/sdcard` paths reachable via standard ADB with USB debugging enabled.
-- **Idempotent schema** — `CREATE TABLE IF NOT EXISTS` + an additive
-  migration list means the app can be pointed at an existing database from an
-  older version without data loss (see `DATABASE_SCHEMA.md`).
-- **Escaping at the boundary** — all report generators escape user data
-  before writing HTML.
+Each acquisition run is represented by a separate acquisition session.
+
+Acquisition sessions preserve point-in-time acquisition context and connect
+the resulting evidence to the corresponding acquisition operation.
+
+---
+
+## 5. Advanced Case Management
+
+Version 1.4 introduces advanced investigation case management.
+
+Cases support:
+
+* Case number
+* Case title
+* Investigator
+* Reviewer
+* Priority
+* Tags
+* Description
+* Investigation notes
+* Evidence directory
+* Investigation status
+* Closure reason
+* Case activity
+
+### Case Lifecycle
+
+The supported investigation workflow is:
+
+```text id="1f5s0w"
+DRAFT
+  ↓
+ACTIVE
+  ↓
+UNDER_INVESTIGATION
+  ↓
+REVIEW
+  ↓
+CLOSED
+  ↓
+ARCHIVED
+```
+
+The case lifecycle provides a controlled progression from initial case
+creation through investigation, review, closure, and archival.
+
+Important case operations and status transitions are recorded in the audit
+trail.
+
+### Archived Cases
+
+Archived cases are treated as read-only to preserve the investigation
+record.
+
+Case activity, evidence history, audit information, and custody information
+remain associated with the investigation record.
+
+---
+
+## 6. `core/adb_manager.py` — Android Device Communication
+
+`ADBManager` provides the interface between ForensIQ and the Android Debug
+Bridge executable.
+
+Responsibilities include:
+
+* Device discovery
+* Device identification
+* Device profiling
+* Installed application information
+* Running process information
+* Battery information
+* Network information
+* Evidence acquisition
+
+Device acquisition operates through authorized ADB access.
+
+ForensIQ does not require root access and does not perform unrestricted
+physical device extraction.
+
+User-accessible storage is acquired from standard Android storage locations,
+including:
+
+* `DCIM`
+* `Pictures`
+* `Movies`
+* `Videos`
+* `Documents`
+* `Download`
+
+Each acquired file is hashed as it is written to the local evidence
+directory.
+
+---
+
+## 7. `core/hasher.py` — Hashing
+
+The hashing subsystem provides SHA-256 operations used throughout the
+forensic workflow.
+
+Supported operations include:
+
+* File hashing
+* Directory hashing
+* String hashing
+* Byte hashing
+* File verification
+
+File hashing is performed in streaming chunks so large evidence files do
+not need to be completely loaded into memory.
+
+SHA-256 is used during:
+
+```text id="t7s5d8"
+Evidence Acquisition
+        ↓
+Stored Evidence Hash
+        ↓
+Integrity Verification
+        ↓
+Analysis / Reporting
+```
+
+---
+
+## 8. `core/integrity_engine.py` — Evidence Integrity
+
+The integrity engine re-hashes evidence stored on disk and compares the
+result against the acquisition-time SHA-256 hash.
+
+Supported operations include:
+
+* `verify_single`
+* `verify_case`
+* `verify_all`
+
+Verification results are classified as:
+
+```text id="8qz7k1"
+PASS
+FAIL
+MISSING
+ERROR
+```
+
+Every verification operation is persisted in `verification_results`.
+
+Verification activity is also recorded in the audit trail.
+
+Integrity results can be exported to JSON and HTML.
+
+---
+
+## 9. `core/analyzer.py` — Forensic Analysis Engine
+
+The analysis engine provides stateless forensic analysis functions operating
+on acquired evidence and, where required, the case database.
+
+### Timeline Analysis
+
+`build_file_timeline` and `build_unified_timeline` combine filesystem
+timestamps with investigation events such as:
+
+* Evidence acquisition
+* Verification
+* Audit activity
+* Custody events
+
+This produces a unified chronological investigation timeline.
+
+### File Metadata
+
+`extract_file_metadata` provides information including:
+
+* MIME type
+* File size
+* SHA-256
+* Relevant timestamps
+
+MIME detection uses `python-magic` when available and falls back to Python's
+standard `mimetypes` module.
+
+### Application Analysis
+
+Installed applications can be classified as:
+
+* System
+* User
+* Disabled
+* Sideloaded
+
+The analysis can also identify recently installed applications where the
+available device information supports the determination.
+
+### Duplicate Detection
+
+Duplicate detection identifies evidence sharing matching SHA-256 and size
+information.
+
+### Artifact Correlation
+
+Correlation links relevant forensic records, including:
+
+```text id="q1b2ny"
+Evidence
+  ↕
+Applications
+  ↕
+Audit Events
+  ↕
+Custody Events
+  ↕
+Verification Records
+```
+
+### Global Search
+
+Keyword search can operate across evidence and investigation records with
+available filtering capabilities such as:
+
+* Date range
+* Investigator
+* File type
+* Evidence type
+* Verification status
+
+Analysis results are persisted in the database for later review and
+reporting.
+
+---
+
+## 10. `core/audit_service.py` — Audit and Chain of Custody
+
+`AuditService` provides typed helper methods around audit and custody
+operations.
+
+Examples include:
+
+* Case creation logging
+* Evidence addition logging
+* Verification logging
+* Report generation logging
+* Signature logging
+* Signature verification logging
+* Custody events
+
+### Audit Trail
+
+The audit trail is append-only.
+
+There is intentionally no normal application path for editing or deleting
+audit entries.
+
+This supports forensic traceability by preserving historical investigation
+activity.
+
+### Chain of Custody
+
+Custody events record evidence-handling operations such as:
+
+* Collection
+* Transfer
+* Storage
+* Release
+
+Custody records can contain investigator, location, timestamp, and notes.
+
+Custody history is preserved as part of the investigation record.
+
+---
+
+## 11. Reporting Architecture
+
+`core/reporter.py` provides forensic report generation.
+
+Reports use structured investigation data from the case database and
+evidence records.
+
+Supported report categories include:
+
+* Full Forensic
+* Case Summary
+* Evidence Summary
+* Integrity
+* Audit Trail
+* Chain of Custody
+* Executive
+* Analysis
+
+The full forensic report can be generated in HTML and PDF formats.
+
+User-controlled data is escaped before being inserted into generated HTML
+reports to reduce the risk of HTML/script injection through case or evidence
+metadata.
+
+Report generation is executed asynchronously so large reports do not block
+the graphical interface.
+
+---
+
+## 12. Digital Signature Architecture
+
+### `core/key_manager.py`
+
+`KeyManager` manages Ed25519 signing keys.
+
+Private keys are stored separately from the SQLite investigation database
+under:
+
+```text id="p6n5tj"
+~/.forensiq/keys/
+```
+
+Private keys are not stored in `forensiq.db` and are not included in normal
+application logging.
+
+### `core/signature_service.py`
+
+`SignatureService` provides signing and verification operations for supported
+forensic artifacts.
+
+The signing workflow is:
+
+```text id="k9q0mv"
+Forensic Artifact
+       ↓
+SHA-256 Hash
+       ↓
+Ed25519 Signature
+       ↓
+Detached .sig.json
+       ↓
+Signature Metadata in Database
+```
+
+The original artifact is not rewritten during the signing operation.
+
+Signature verification re-hashes the selected artifact and validates its
+signature.
+
+Verification states include:
+
+```text id="0b2xqv"
+VALID
+INVALID
+MODIFIED
+MISSING
+KEY_UNAVAILABLE
+```
+
+Signature operations are also mirrored into the audit trail.
+
+---
+
+## 13. UI Architecture
+
+`main_window.py` hosts the main application window and the navigation
+system.
+
+The primary application panels are:
+
+```text id="4i4z9k"
+Dashboard
+Device
+Acquisition
+Cases
+Analysis
+Reports
+Signatures
+Integrity
+Audit Trail
+Custody
+```
+
+Navigation is driven by the application's navigation configuration and
+stacked-widget architecture.
+
+Each navigation entry maps to a corresponding panel.
+
+The architecture allows new panels to be introduced without redesigning the
+entire application navigation system.
+
+### Styling
+
+UI styling is centralized through the application stylesheet.
+
+Status information such as:
+
+* PASS / FAIL
+* VALID / INVALID
+* MODIFIED
+* Other forensic result states
+
+is presented through dedicated status/result indicators.
+
+---
+
+## 14. Data Flow — Complete Investigation Lifecycle
+
+The typical investigation flow is:
+
+```text id="3b2v5r"
+1. Create Case
+       ↓
+2. Identify Android Device
+       ↓
+3. Start Acquisition Session
+       ↓
+4. Acquire Evidence
+       ↓
+5. Generate SHA-256 Hashes
+       ↓
+6. Analyse Evidence
+       ↓
+7. Build Unified Timeline
+       ↓
+8. Verify Evidence Integrity
+       ↓
+9. Record Audit / Custody Activity
+       ↓
+10. Generate Reports
+       ↓
+11. Sign Supported Artifacts
+       ↓
+12. Verify Signatures
+       ↓
+13. Review / Close Case
+       ↓
+14. Archive Case
+```
+
+### Detailed Data Flow
+
+1. **Cases panel** creates the investigation case through `CaseManager`.
+2. **Device panel** communicates with ADB and stores the identified device.
+3. **Acquisition panel** starts an acquisition session and acquires
+   user-accessible evidence.
+4. Each acquired file is hashed and stored as an evidence record.
+5. **Analysis panel** processes evidence and persists analysis results and
+   timeline events.
+6. **Integrity panel** re-hashes evidence and stores verification results.
+7. **Audit Service** records important investigation operations.
+8. **Custody panel** records evidence-handling events.
+9. **Reports panel** collects investigation data and generates reports.
+10. **Signature panel** signs supported artifacts and stores signature
+    metadata.
+11. Signature verification re-hashes the artifact and validates its
+    signature.
+12. Case management controls the investigation through review, closure,
+    and archival.
+
+---
+
+## 15. Database and Persistence Model
+
+The SQLite database is the central persistence layer for investigation
+metadata.
+
+Major logical data areas include:
+
+```text id="q7m8pz"
+Cases
+ ├── Devices
+ │    └── Acquisition Sessions
+ │         └── Evidence
+ │
+ ├── Analysis Results
+ ├── Timeline Events
+ ├── Verification Results
+ ├── Audit Trail
+ ├── Custody Events
+ ├── Signatures
+ └── Case Activity / Investigation Metadata
+```
+
+The database schema and migration details are documented separately in
+`DATABASE_SCHEMA.md`.
+
+---
+
+## 16. Security and Forensic Integrity Principles
+
+ForensIQ follows several design principles intended to preserve forensic
+traceability.
+
+### Audit Immutability
+
+Audit records are append-only. The application does not provide normal
+operations for modifying or deleting historical audit entries.
+
+### Evidence Integrity
+
+Acquired evidence receives a SHA-256 hash that can later be independently
+recomputed and compared.
+
+### Chain of Custody
+
+Evidence-handling events are recorded separately from the audit trail so
+custody history remains explicitly identifiable.
+
+### Digital Authenticity
+
+Supported forensic artifacts can be signed using Ed25519 digital signatures.
+
+### No Root / Exploit Usage
+
+Acquisition is limited to data exposed through authorized ADB access.
+
+ForensIQ does not attempt to bypass Android security controls or obtain
+unauthorized access to protected device data.
+
+### Database Migration Safety
+
+Schema changes are implemented through additive migrations rather than
+destructive database replacement.
+
+### Output Escaping
+
+User-controlled data is escaped before being inserted into generated HTML
+reports.
+
+---
+
+## 17. Testing Architecture
+
+The project maintains automated tests for core functionality.
+
+The architecture intentionally keeps significant forensic logic independent
+from Qt widgets so that modules can be tested without launching the full
+graphical interface.
+
+Testing areas include:
+
+* Case management
+* Database operations
+* Device handling
+* Evidence acquisition
+* Hashing
+* Integrity verification
+* Analysis
+* Audit logging
+* Chain of custody
+* Reporting
+* Digital signatures
+* Regression scenarios
+
+The test suite is located under:
+
+```text id="q0m6n3"
+tests/
+```
+
+---
+
+## 18. Repository Structure
+
+The repository is organized around the application package, supporting
+scripts, tests, and documentation:
+
+```text id="z5n2k8"
+Forensiq/
+├── forensiq/
+│   ├── core/
+│   └── ui/
+├── scripts/
+├── tests/
+├── main.py
+├── requirements.txt
+├── pyproject.toml
+├── pytest.ini
+├── README.md
+├── INSTALLATION.md
+├── USER_GUIDE.md
+├── ARCHITECTURE.md
+├── DATABASE_SCHEMA.md
+├── CHANGELOG.md
+└── RELEASE_NOTES.md
+```
+
+The exact set of internal modules may evolve as new forensic capabilities
+are introduced.
+
+---
+
+## 19. Design Principles Preserved
+
+The following principles are maintained throughout the architecture:
+
+* **Evidence integrity** — acquired evidence is SHA-256 hashed and can be
+  independently re-verified.
+* **Audit immutability** — audit history is append-only.
+* **Chain-of-custody traceability** — evidence-handling events are recorded
+  independently.
+* **Controlled case lifecycle** — investigations progress through defined
+  case states.
+* **No root / exploit usage** — acquisition relies on authorized ADB access.
+* **Local-first persistence** — investigation metadata is stored locally.
+* **Idempotent database migrations** — existing databases can be upgraded
+  without destructive replacement.
+* **Separation of concerns** — UI, forensic services, and persistence remain
+  logically separated.
+* **Thread-safe database access** — worker and UI operations use independent
+  database connections.
+* **Asynchronous long-running operations** — acquisition, analysis,
+  verification, and reporting do not block the UI.
+* **Boundary escaping** — generated HTML reports escape user-controlled data.
+* **Cryptographic authenticity** — supported artifacts can be protected with
+  Ed25519 signatures.
